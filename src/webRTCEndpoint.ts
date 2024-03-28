@@ -1133,12 +1133,13 @@ export class WebRTCEndpoint<EndpointMetadata = any, TrackMetadata = any> extends
   public async replaceTrack(trackId: string, newTrack: MediaStreamTrack, newTrackMetadata?: any): Promise<void> {
     const resolutionNotifier = new Deferred<void>();
     try {
-      const parsedTrackMetadata = this.trackMetadataParser(newTrackMetadata);
+      const newMetadata = newTrackMetadata !== undefined ? this.trackMetadataParser(newTrackMetadata) : undefined;
+
       this.pushCommand({
         commandType: "REPLACE-TRACK",
         trackId,
         newTrack,
-        newTrackMetadata: parsedTrackMetadata,
+        newTrackMetadata: newMetadata,
         resolutionNotifier,
       });
     } catch (error) {
@@ -1163,9 +1164,11 @@ export class WebRTCEndpoint<EndpointMetadata = any, TrackMetadata = any> extends
       sender
         .replaceTrack(newTrack)
         .then(() => {
-          const trackMetadata = newTrackMetadata || this.localTrackIdToTrack.get(trackId)!.metadata;
           trackContext.track = newTrack;
-          this.updateTrackMetadata(trackId, trackMetadata);
+
+          if (newTrackMetadata) {
+            this.updateTrackMetadata(trackId, newTrackMetadata);
+          }
         })
         .finally(() => {
           this.resolvePreviousCommand();
@@ -1708,7 +1711,7 @@ export class WebRTCEndpoint<EndpointMetadata = any, TrackMetadata = any> extends
         this.processNextCommand();
         break;
       case "failed":
-        this.emit("connectionError", "Connection failed");
+        this.emit("connectionError", "RTCPeerConnection failed");
         break;
     }
   };
